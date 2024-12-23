@@ -256,37 +256,49 @@ class PokemonRepositoryImpl(
         trainerId: UUID
     ): Either<PokemonServiceImpl.PokemonServiceErrors, Int> =
         try {
-            val pokemon = databaseClient.sql("INSERT INTO pokedex(pokemon_id, trainers_id) VALUES(:pokemonId, :trainerId)")
-                .bind("pokemonId", pokemonId)
+            val pokemon =
+                databaseClient.sql("INSERT INTO pokedex(pokemon_id, trainers_id) VALUES(:pokemonId, :trainerId)")
+                    .bind("pokemonId", pokemonId)
+                    .bind("trainerId", trainerId.toString())
+                    .fetch()
+                    .rowsUpdated()
+                    .map { it.toInt() }
+                    .awaitSingle()
+                    .right()
+            pokemon
+        } catch (e: Exception) {
+            Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
+        }
+
+    override suspend fun deletePokemon(
+        pokemonId: Int,
+        trainerId: UUID
+    ): Either<PokemonServiceImpl.PokemonServiceErrors, Int> =
+        try {
+            val pokemon =
+                databaseClient.sql("DELETE FROM pokedex WHERE pokemon_id = :pokemonId AND trainers_id = :trainerId")
+                    .bind("pokemonId", pokemonId)
+                    .bind("trainerId", trainerId.toString())
+                    .fetch()
+                    .rowsUpdated()
+                    .map { it.toInt() }
+                    .awaitSingle()
+                    .right()
+            pokemon
+        } catch (e: Exception) {
+            Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
+        }
+
+    override suspend fun deleteAllPokemons(trainerId: UUID): Either<PokemonServiceImpl.PokemonServiceErrors, Unit> =
+        try {
+            databaseClient.sql("DELETE FROM pokedex WHERE trainers_id = :trainerId")
                 .bind("trainerId", trainerId.toString())
                 .fetch()
                 .rowsUpdated()
-                .map { it.toInt() }
+                .map { }
                 .awaitSingle()
                 .right()
         } catch (e: Exception) {
             Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
         }
-
-    override fun deletePokemon(
-        pokemonId: Int,
-        trainerId: UUID
-    ): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, Int>> =
-        databaseClient.sql("DELETE FROM pokedex WHERE pokemon_id = :pokemonId AND trainers_id = :trainerId")
-            .bind("pokemonId", pokemonId)
-            .bind("trainerId", trainerId.toString())
-            .fetch()
-            .rowsUpdated()
-            .map { it.toInt() }
-            .map {
-                it?.right() ?: PokemonServiceImpl.PokemonServiceErrors.TechnicalError.left()
-            }
-
-    override fun deleteAllPokemons(trainerId: UUID): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, Unit>> =
-        databaseClient.sql("DELETE FROM pokedex WHERE trainers_id = :trainerId")
-            .bind("trainerId", trainerId.toString())
-            .fetch()
-            .rowsUpdated()
-            .map { }
-            .map { it.right() }
 }
