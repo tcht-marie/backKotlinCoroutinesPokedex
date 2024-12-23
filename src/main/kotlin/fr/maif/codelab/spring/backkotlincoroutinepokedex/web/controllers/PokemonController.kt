@@ -64,7 +64,22 @@ class PokemonController(
             }
 
     @GetMapping("/versions", produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun findVersions(): Mono<ResponseEntity<List<VersionDto>>> =
+    suspend fun findVersions(): ResponseEntity<List<VersionDto>> {
+        return try {
+            pokemonService.getVersions().fold(
+                {
+                    ResponseEntity.internalServerError().build()
+                },
+                { list ->
+                    val versions = list.map { pokemonMapperDto.mapVersionToVersionDto(it) }
+                    ResponseEntity.ok().body(versions)
+                }
+            )
+        } catch (e: Exception) {
+            ResponseEntity.internalServerError().build()
+        }
+    }
+    /*=
         pokemonService.getVersions()
             .map { either ->
                 either.fold(
@@ -76,7 +91,7 @@ class PokemonController(
                         ResponseEntity.ok().body(versions)
                     }
                 )
-            }
+            }*/
 
     @GetMapping("/items", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun findItemDetailsByPage(

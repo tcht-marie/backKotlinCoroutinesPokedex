@@ -2,17 +2,23 @@ package fr.maif.codelab.spring.backkotlincoroutinepokedex.infrastructure.reposit
 
 import arrow.core.Either
 import arrow.core.left
+import arrow.core.raise.result
 import arrow.core.right
 import fr.maif.codelab.spring.backkotlincoroutinepokedex.domain.models.*
 import fr.maif.codelab.spring.backkotlincoroutinepokedex.domain.repositories.PokemonRepository
 import fr.maif.codelab.spring.backkotlincoroutinepokedex.domain.services.PokemonServiceImpl
 import fr.maif.codelab.spring.backkotlincoroutinepokedex.infrastructure.models.*
 import fr.maif.codelab.spring.backkotlincoroutinepokedex.infrastructure.repositories.mapper.PokemonMapper
+import kotlinx.coroutines.reactive.awaitSingle
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.r2dbc.core.DatabaseClient
+import org.springframework.r2dbc.core.awaitSingleOrNull
 import org.springframework.stereotype.Repository
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.awaitBody
+import org.springframework.web.reactive.function.client.awaitExchange
 import reactor.core.publisher.Mono
 import java.util.*
 
@@ -33,196 +39,234 @@ class PokemonRepositoryImpl(
     private val PATH_MOVES: String = "/move?limit={limit}&offset={offset}"
     private val PATH_MOVEDETAILS: String = "/move/{idMove}"
 
-    private fun getPokedex(): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, PokedexInfra>> =
-        webClient.get().uri(PATH_POKEDEX).exchangeToMono { response ->
-            if (response.statusCode() == HttpStatus.OK) {
-                response.bodyToMono(PokedexInfra::class.java).map { it.right() }
-            } else {
-                Mono.just(PokemonServiceImpl.PokemonServiceErrors.TechnicalError.left())
+    private suspend fun getPokedex(): Either<PokemonServiceImpl.PokemonServiceErrors, PokedexInfra> =
+        try {
+            val response = webClient.get().uri(PATH_POKEDEX).awaitExchange { clientResponse ->
+                if (clientResponse.statusCode() == HttpStatus.OK) {
+                    val body = clientResponse.awaitBody<PokedexInfra>()
+                    Either.Right(body)
+                } else {
+                    Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
+                }
             }
+            response
+        } catch (e: Exception) {
+            Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
         }
 
-    override fun findPokemonsByPage(
+    override suspend fun findPokemonsByPage(
         limit: Int,
         offset: Int
-    ): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, PokedexPage>> {
-        return getPokedex().flatMap { either ->
-            either.fold(
-                { Mono.just(it.left()) },
-                { pokedexInfra ->
-                    Mono.just(
-                        pokemonMapper.mapPokedexInfraToPokedexPage(pokedexInfra, limit, offset).right()
-                    )
-                }
-            )
-        }
+    ): Either<PokemonServiceImpl.PokemonServiceErrors, PokedexPage> {
+        return getPokedex().fold(
+            { Either.Left(it) },
+            { pokedexInfra ->
+                Either.Right(
+                    pokemonMapper.mapPokedexInfraToPokedexPage(pokedexInfra, limit, offset)
+                )
+            }
+        )
     }
 
-
-    override fun searchPokemonsByName(
+    override suspend fun searchPokemonsByName(
         limit: Int, offset: Int, query: String
-    ): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, PokedexPage>> {
-        return getPokedex().flatMap { either ->
-            either.fold(
-                { Mono.just(it.left()) },
-                { pokedexInfra ->
-                    Mono.just(
-                        pokemonMapper.mapPokedexInfraToPokedexByName(
-                            pokedexInfra,
-                            query,
-                            limit,
-                            offset
-                        ).right()
+    ): Either<PokemonServiceImpl.PokemonServiceErrors, PokedexPage> {
+        return getPokedex().fold(
+            { Either.Left(it) },
+            { pokedexInfra ->
+                Either.Right(
+                    pokemonMapper.mapPokedexInfraToPokedexByName(
+                        pokedexInfra, query, limit, offset
                     )
+                )
+            }
+        )
+    }
+
+    override suspend fun findPokemonByIds(pokemonIds: List<Int>): Either<PokemonServiceImpl.PokemonServiceErrors, List<Pokemon>> =
+        getPokedex().fold(
+            { Either.Left(it) },
+            { pokedex ->
+                Either.Right(
+                    pokemonMapper.mapPokemonsIdsToPokemon(pokemonIds, pokedex)
+                )
+            }
+        )
+
+    override suspend fun findPokemonById(idPokemon: Int): Either<PokemonServiceImpl.PokemonServiceErrors, PokemonDetails> {
+        return try {
+            val response = webClient.get().uri(PATH_POKEMONDETAILS, idPokemon).awaitExchange { clientResponse ->
+                if (clientResponse.statusCode() == HttpStatus.OK) {
+                    val body = clientResponse.awaitBody<PokemonInfra>()
+                    val pokemonDetails = pokemonMapper.mapPokemonInfraToPokemonDetails(body)
+                    Either.Right(pokemonDetails)
+                } else {
+                    Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
                 }
-            )
+            }
+            response
+        } catch (e: Exception) {
+            Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
         }
     }
 
-    override fun findPokemonByIds(pokemonIds: List<Int>): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, List<Pokemon>>> =
-        getPokedex().flatMap { either ->
-            either.fold(
-                { Mono.just(it.left()) },
-                { pokedex ->
-                    Mono.just(
-                        pokemonMapper.mapPokemonsIdsToPokemon(pokemonIds, pokedex).right()
-                    )
+    override suspend fun findVersions(): Either<PokemonServiceImpl.PokemonServiceErrors, List<Version>> {
+        return try {
+            val response = webClient.get().uri(PATH_VERSIONS).awaitExchange { clientResponse ->
+                if (clientResponse.statusCode() == HttpStatus.OK) {
+                    val body = clientResponse.awaitBody<PageGenericInfra<VersionInfra>>()
+                    val versions = pokemonMapper.mapVersionInfraToVersion(body)
+                    Either.Right(versions)
+                } else {
+                    Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
                 }
-            )
-        }
-
-    override fun findPokemonById(idPokemon: Int): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, PokemonDetails>> {
-        return webClient.get().uri(PATH_POKEMONDETAILS, idPokemon).exchangeToMono { response ->
-            if (response.statusCode() == HttpStatus.OK) {
-                response.bodyToMono(PokemonInfra::class.java).map {
-                    pokemonMapper.mapPokemonInfraToPokemonDetails(it).right()
-                }
-            } else {
-                Mono.just(PokemonServiceImpl.PokemonServiceErrors.TechnicalError.left())
             }
+            response
+        } catch (e: Exception) {
+            Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
         }
     }
 
-    override fun findVersions(): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, List<Version>>> {
-        return webClient.get().uri(PATH_VERSIONS)
-            .exchangeToMono { response ->
-                if (response.statusCode() == HttpStatus.OK) {
-                    response.bodyToMono(object : ParameterizedTypeReference<PageGenericInfra<VersionInfra>>() {})
-                        .mapNotNull {
-                            pokemonMapper.mapVersionInfraToVersion(it).right()
-                        }
+    override suspend fun findItems(
+        limit: Int,
+        offset: Int
+    ): Either<PokemonServiceImpl.PokemonServiceErrors, List<Item>> {
+        return try {
+            val response = webClient.get().uri(PATH_ITEMS, limit, offset).awaitExchange { clientResponse ->
+                if (clientResponse.statusCode() == HttpStatus.OK) {
+                    val body = clientResponse.awaitBody<PageGenericInfra<ItemInfra>>()
+                    val items = pokemonMapper.mapItemInfraToItem(body)
+                    Either.Right(items)
                 } else {
-                    // just = crée un mono à partir de rien (constructor pour mono)
-                    // left = crée un either left qui contient l'objet d'erreur
-                    Mono.just(PokemonServiceImpl.PokemonServiceErrors.TechnicalError.left())
+                    Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
                 }
             }
+            response
+        } catch (e: Exception) {
+            Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
+        }
     }
 
-    override fun findItems(limit: Int, offset: Int): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, List<Item>>> {
-        return webClient.get().uri(PATH_ITEMS, limit, offset)
-            .exchangeToMono { response ->
-                if (response.statusCode() == HttpStatus.OK) {
-                    response.bodyToMono(object : ParameterizedTypeReference<PageGenericInfra<ItemInfra>>() {})
-                        .mapNotNull { pokemonMapper.mapItemInfraToItem(it).right() }
+    override suspend fun findItemDetailsById(idItem: Int): Either<PokemonServiceImpl.PokemonServiceErrors, ItemDetails> {
+        return try {
+            val response = webClient.get().uri(PATH_ITEMDETAILS, idItem).awaitExchange { clientResponse ->
+                if (clientResponse.statusCode() == HttpStatus.OK) {
+                    val body = clientResponse.awaitBody<ItemDetailsInfra>()
+                    val itemDetails = pokemonMapper.mapItemDetailsInfraToItemDetails(body)
+                    Either.Right(itemDetails)
                 } else {
-                    Mono.just(PokemonServiceImpl.PokemonServiceErrors.TechnicalError.left())
+                    Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
                 }
             }
+            response
+        } catch (e: Exception) {
+            Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
+        }
     }
 
-    override fun findItemDetailsById(idItem: Int): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, ItemDetails>> {
-        return webClient.get().uri(PATH_ITEMDETAILS, idItem)
-            .exchangeToMono { response ->
-                if (response.statusCode() == HttpStatus.OK) {
-                    response.bodyToMono(ItemDetailsInfra::class.java).mapNotNull {
-                        pokemonMapper.mapItemDetailsInfraToItemDetails(it).right()
-                    }
+    override suspend fun findMoves(
+        limit: Int,
+        offset: Int
+    ): Either<PokemonServiceImpl.PokemonServiceErrors, List<Move>> {
+        return try {
+            val response = webClient.get().uri(PATH_MOVES, limit, offset).awaitExchange { clientResponse ->
+                if (clientResponse.statusCode() == HttpStatus.OK) {
+                    val body = clientResponse.awaitBody<PageGenericInfra<MoveInfra>>()
+                    val moves = pokemonMapper.mapMoveInfraToMove(body)
+                    Either.Right(moves)
                 } else {
-                    Mono.just(PokemonServiceImpl.PokemonServiceErrors.TechnicalError.left())
+                    Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
                 }
             }
+            response
+        } catch (e: Exception) {
+            Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
+        }
     }
 
-    override fun findMoves(limit: Int, offset: Int): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, List<Move>>> {
-        return webClient.get().uri(PATH_MOVES, limit, offset)
-            .exchangeToMono { response ->
-                if (response.statusCode() == HttpStatus.OK) {
-                    response.bodyToMono(object : ParameterizedTypeReference<PageGenericInfra<MoveInfra>>() {})
-                        .mapNotNull { pokemonMapper.mapMoveInfraToMove(it).right() }
+    override suspend fun findMoveDetailsById(idMove: Int): Either<PokemonServiceImpl.PokemonServiceErrors, MoveDetails> {
+        return try {
+            val response = webClient.get().uri(PATH_MOVEDETAILS, idMove).awaitExchange { clientResponse ->
+                if (clientResponse.statusCode() == HttpStatus.OK) {
+                    val body = clientResponse.awaitBody<MoveDetailsInfra>()
+                    val moveDetails = pokemonMapper.mapMoveDetailsInfraToMoveDetails(body)
+                    Either.Right(moveDetails)
                 } else {
-                    Mono.just(PokemonServiceImpl.PokemonServiceErrors.TechnicalError.left())
+                    Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
                 }
             }
+            response
+        } catch (e: Exception) {
+            Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
+        }
     }
 
-    override fun findMoveDetailsById(idMove: Int): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, MoveDetails>> {
-        return webClient.get().uri(PATH_MOVEDETAILS, idMove)
-            .exchangeToMono { response ->
-                if (response.statusCode() == HttpStatus.OK) {
-                    response.bodyToMono(MoveDetailsInfra::class.java).mapNotNull {
-                        pokemonMapper.mapMoveDetailsInfraToMoveDetails(it).right()
-                    }
+    override suspend fun findSpeciesById(id: Int): Either<PokemonServiceImpl.PokemonServiceErrors, Pokemon> {
+        return try {
+            val response = webClient.get().uri(PATH_SPECIES, id).awaitExchange { clientResponse ->
+                if (clientResponse.statusCode() == HttpStatus.OK) {
+                    val body = clientResponse.awaitBody<PokemonSpeciesInfra>()
+                    val species = pokemonMapper.mapSpeciesInfraToPokemon(body)
+                    Either.Right(species)
                 } else {
-                    Mono.just(PokemonServiceImpl.PokemonServiceErrors.TechnicalError.left())
+                    Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
                 }
             }
+            response
+        } catch (e: Exception) {
+            Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
+        }
     }
 
-    override fun findSpeciesById(id: Int): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, Pokemon>> {
-        return webClient.get().uri(PATH_SPECIES, id)
-            .exchangeToMono { response ->
-                if (response.statusCode() == HttpStatus.OK) {
-                    response.bodyToMono(PokemonSpeciesInfra::class.java).mapNotNull {
-                        pokemonMapper.mapSpeciesInfraToPokemon(it).right()
-                    }
+    override suspend fun findChainEvolutionById(id: Int): Either<PokemonServiceImpl.PokemonServiceErrors, EvolutionChain> {
+        return try {
+            val response = webClient.get().uri(PATH_EVOLUTION, id).awaitExchange { clientResponse ->
+                if (clientResponse.statusCode() == HttpStatus.OK) {
+                    val body = clientResponse.awaitBody<EvolutionChainDetailsInfra>()
+                    val evoChain = pokemonMapper.mapEvoDetailsToChainEvolution(body)
+                    Either.Right(evoChain)
                 } else {
-                    Mono.just(PokemonServiceImpl.PokemonServiceErrors.TechnicalError.left())
+                    Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
                 }
             }
+            response
+        } catch (e: Exception) {
+            Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
+        }
     }
 
-    override fun findChainEvolutionById(id: Int): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, EvolutionChain>> {
-        return webClient.get().uri(PATH_EVOLUTION, id)
-            .exchangeToMono { response ->
-                if (response.statusCode() == HttpStatus.OK) {
-                    response.bodyToMono(EvolutionChainDetailsInfra::class.java).mapNotNull {
-                        pokemonMapper.mapEvoDetailsToChainEvolution(it).right()
-                    }
-                } else {
-                    Mono.just(PokemonServiceImpl.PokemonServiceErrors.TechnicalError.left())
-                }
-            }
+    override suspend fun getTrainerPokedex(trainerId: UUID): Either<PokemonServiceImpl.PokemonServiceErrors, List<Int>> {
+        return try {
+            val pokedex = databaseClient.sql("SELECT pokemon_id FROM pokedex WHERE trainers_id = :trainerId")
+                .bind("trainerId", trainerId.toString())
+                .map { row -> row.get(0, Int::class.javaObjectType) }
+                .all()
+                .collectList()
+                .awaitSingle()
+                .filterNotNull()
+                .right()
+            pokedex
+        } catch (e: Exception) {
+            Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
+        }
     }
 
-    override fun getTrainerPokedex(trainerId: UUID): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, List<Int>>> =
-        databaseClient.sql("SELECT pokemon_id FROM pokedex WHERE trainers_id = :trainerId")
-            .bind("trainerId", trainerId.toString())
-            .map { row -> row.get(0, Int::class.javaObjectType) }
-            .all()
-            .collectList()
-            .map { it.filterNotNull().right() }
-            /*.map { pokedexId ->
-                if (pokedexId.isNotEmpty()) {
-                    pokedexId.right()
-                } else {
-                    PokemonServiceImpl.PokemonServiceErrors.TechnicalError.left()
-                }
-            }*/
-
-    override fun addPokemon(
+    override suspend fun addPokemon(
         pokemonId: Int,
         trainerId: UUID
-    ): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, Int>> =
-        databaseClient.sql("INSERT INTO pokedex(pokemon_id, trainers_id) VALUES(:pokemonId, :trainerId)")
-            .bind("pokemonId", pokemonId)
-            .bind("trainerId", trainerId.toString())
-            .fetch()
-            .rowsUpdated()
-            .map { it.toInt() }
-            .map {
-                it?.right() ?: PokemonServiceImpl.PokemonServiceErrors.TechnicalError.left()
-            }
+    ): Either<PokemonServiceImpl.PokemonServiceErrors, Int> =
+        try {
+            val pokemon = databaseClient.sql("INSERT INTO pokedex(pokemon_id, trainers_id) VALUES(:pokemonId, :trainerId)")
+                .bind("pokemonId", pokemonId)
+                .bind("trainerId", trainerId.toString())
+                .fetch()
+                .rowsUpdated()
+                .map { it.toInt() }
+                .awaitSingle()
+                .right()
+        } catch (e: Exception) {
+            Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
+        }
 
     override fun deletePokemon(
         pokemonId: Int,

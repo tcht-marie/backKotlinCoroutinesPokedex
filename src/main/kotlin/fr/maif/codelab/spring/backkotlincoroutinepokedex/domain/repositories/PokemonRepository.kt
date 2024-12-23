@@ -7,33 +7,33 @@ import reactor.core.publisher.Mono
 import java.util.UUID
 
 interface PokemonRepository {
-    fun findPokemonsByPage(limit: Int, offset: Int): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, PokedexPage>>
+    suspend fun findPokemonsByPage(limit: Int, offset: Int): Either<PokemonServiceImpl.PokemonServiceErrors, PokedexPage>
 
-    fun searchPokemonsByName(limit: Int, offset: Int, query: String): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, PokedexPage>>
+    suspend fun searchPokemonsByName(limit: Int, offset: Int, query: String): Either<PokemonServiceImpl.PokemonServiceErrors, PokedexPage>
 
-    fun findPokemonById(idPokemon: Int): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, PokemonDetails>>
+    suspend fun findPokemonById(idPokemon: Int): Either<PokemonServiceImpl.PokemonServiceErrors, PokemonDetails>
 
-    fun findPokemonByIds(pokemonIds: List<Int>): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, List<Pokemon>>>
+    suspend fun findPokemonByIds(pokemonIds: List<Int>): Either<PokemonServiceImpl.PokemonServiceErrors, List<Pokemon>>
 
-    fun findVersions(): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, List<Version>>>
+    suspend fun findVersions(): Either<PokemonServiceImpl.PokemonServiceErrors, List<Version>>
 
-    fun findItems(limit: Int, offset: Int): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, List<Item>>>
+    suspend fun findItems(limit: Int, offset: Int): Either<PokemonServiceImpl.PokemonServiceErrors, List<Item>>
 
-    fun findItemDetailsById(idItem: Int): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, ItemDetails>>
+    suspend fun findItemDetailsById(idItem: Int): Either<PokemonServiceImpl.PokemonServiceErrors, ItemDetails>
 
-    fun findMoves(limit: Int, offset: Int): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, List<Move>>>
+    suspend fun findMoves(limit: Int, offset: Int): Either<PokemonServiceImpl.PokemonServiceErrors, List<Move>>
 
-    fun findMoveDetailsById(idMove: Int): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, MoveDetails>>
+    suspend fun findMoveDetailsById(idMove: Int): Either<PokemonServiceImpl.PokemonServiceErrors, MoveDetails>
 
-    fun findSpeciesById(id: Int): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, Pokemon>>
+    suspend fun findSpeciesById(id: Int): Either<PokemonServiceImpl.PokemonServiceErrors, Pokemon>
 
-    fun findChainEvolutionById(id: Int): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, EvolutionChain>>
+    suspend fun findChainEvolutionById(id: Int): Either<PokemonServiceImpl.PokemonServiceErrors, EvolutionChain>
 
-    fun getTrainerPokedex(trainerId: UUID): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, List<Int>>>
+    suspend fun getTrainerPokedex(trainerId: UUID): Either<PokemonServiceImpl.PokemonServiceErrors, List<Int>>
 
-    fun addPokemon(pokemonId: Int, trainerId: UUID): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, Int>>
+    suspend fun addPokemon(pokemonId: Int, trainerId: UUID): Either<PokemonServiceImpl.PokemonServiceErrors, Int>
 
-    fun deletePokemon(pokemonId: Int, trainerId: UUID): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, Int>>
+    suspend fun deletePokemon(pokemonId: Int, trainerId: UUID): Either<PokemonServiceImpl.PokemonServiceErrors, Int>
 
-    fun deleteAllPokemons(trainerId: UUID): Mono<Either<PokemonServiceImpl.PokemonServiceErrors, Unit>>
+    suspend fun deleteAllPokemons(trainerId: UUID): Either<PokemonServiceImpl.PokemonServiceErrors, Unit>
 }

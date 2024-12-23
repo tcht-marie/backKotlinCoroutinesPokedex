@@ -1,6 +1,6 @@
 spring:
   application:
-    name: backKotlinReactivePokedex
+    name: backKotlinCoroutinePokedex
   r2dbc:
     url: r2dbc:postgresql://localhost:5432/pokedex
     username: osselait

@@ -112,7 +112,7 @@ class PokemonServiceImpl(
         }
     }*/
 
-    override fun getVersions(): Mono<Either<PokemonServiceErrors, List<Version>>> =
+    override suspend fun getVersions(): Either<PokemonServiceErrors, List<Version>> =
         pokemonRepository.findVersions()
 
     override fun getItemsByPage(limit: Int, offset: Int): Mono<Either<PokemonServiceErrors, List<ItemDetails>>> {

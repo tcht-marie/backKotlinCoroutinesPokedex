@@ -1,1 +1,1 @@
-rootProject.name = "backKotlinReactivePokedex"
+rootProject.name = "backKotlinCoroutinePokedex"

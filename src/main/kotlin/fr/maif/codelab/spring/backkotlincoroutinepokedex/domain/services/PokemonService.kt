@@ -13,7 +13,7 @@ interface PokemonService {
 
     fun getPokemonById(id: Int): Mono<Either<PokemonServiceErrors, CompletePokemon>>
 
-    fun getVersions(): Mono<Either<PokemonServiceErrors, List<Version>>>
+    suspend fun getVersions(): Either<PokemonServiceErrors, List<Version>>
 
     fun getItemsByPage(limit: Int, offset: Int): Mono<Either<PokemonServiceErrors, List<ItemDetails>>>
 
