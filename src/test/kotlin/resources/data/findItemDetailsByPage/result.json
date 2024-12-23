@@ -1,0 +1,9 @@
+[
+  {
+    "spriteUrl": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/master-ball.png",
+    "name": "Master-ball",
+    "id": 1,
+    "effect": "Catches a wild Pokémon every time.",
+    "category": "standard-balls"
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "count": 2180,
+  "next": "https://pokeapi.co/api/v2/item?offset=1&limit=1",
+  "previous": null,
+  "results": [
+    {
+      "name": "master-ball",
+      "url": "https://pokeapi.co/api/v2/item/1/"
+    }
+  ]
+}

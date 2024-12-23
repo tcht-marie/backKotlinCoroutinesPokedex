@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Pound",
+    "power": 40,
+    "pp": 35,
+    "pokemonTypes": "NORMAL",
+    "flavorText": "Pounds with fore­ legs or tail.",
+    "pokemons": [
+      {
+        "id": 35,
+        "idLabel": "#0035",
+        "name": "Clefairy",
+        "imageUrl": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/35.png"
+      }
+    ]
+  }
+]

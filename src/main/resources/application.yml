@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: backKotlinReactivePokedex
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/pokedex
+    username: osselait
+    password: pokemon
+  liquibase:
+    enabled: true
+    url: jdbc:postgresql://localhost:5432/pokedex
+    user: osselait
+    password: pokemon
+    change-log: classpath:/db/changelog/db.changelog-master.sql
+
+pokeapi:
+  base-url: "https://pokeapi.co/api/v2"
