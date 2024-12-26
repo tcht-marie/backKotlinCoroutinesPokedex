@@ -10,6 +10,7 @@ import fr.maif.codelab.spring.backkotlincoroutinepokedex.domain.services.Pokemon
 import fr.maif.codelab.spring.backkotlincoroutinepokedex.infrastructure.models.*
 import fr.maif.codelab.spring.backkotlincoroutinepokedex.infrastructure.repositories.mapper.PokemonMapper
 import kotlinx.coroutines.reactive.awaitSingle
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -182,40 +183,28 @@ class PokemonRepositoryImpl(
             }
         }
 
-    override suspend fun getTrainerPokedex(trainerId: UUID): Either<PokemonServiceImpl.PokemonServiceErrors, List<Int>> {
-        return try {
-            val pokedex = databaseClient.sql("SELECT pokemon_id FROM pokedex WHERE trainers_id = :trainerId")
-                .bind("trainerId", trainerId.toString())
-                .map { row -> row.get(0, Int::class.javaObjectType) }
-                .all()
-                .collectList()
-                .awaitSingle()
-                .filterNotNull()
-                .right()
-            pokedex
-        } catch (e: Exception) {
-            Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
-        }
-    }
+    override suspend fun getTrainerPokedex(trainerId: UUID): Either<PokemonServiceImpl.PokemonServiceErrors, List<Int>> =
+        databaseClient.sql("SELECT pokemon_id FROM pokedex WHERE trainers_id = :trainerId")
+            .bind("trainerId", trainerId.toString())
+            .map { row -> row.get(0, Int::class.javaObjectType) }
+            .all()
+            .collectList()
+            .awaitSingle()
+            .filterNotNull()
+            .right() ?: Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
 
     override suspend fun addPokemon(
         pokemonId: Int,
         trainerId: UUID
     ): Either<PokemonServiceImpl.PokemonServiceErrors, Int> =
-        try {
-            val pokemon =
-                databaseClient.sql("INSERT INTO pokedex(pokemon_id, trainers_id) VALUES(:pokemonId, :trainerId)")
-                    .bind("pokemonId", pokemonId)
-                    .bind("trainerId", trainerId.toString())
-                    .fetch()
-                    .rowsUpdated()
-                    .map { it.toInt() }
-                    .awaitSingle()
-                    .right()
-            pokemon
-        } catch (e: Exception) {
-            Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
-        }
+        databaseClient.sql("INSERT INTO pokedex(pokemon_id, trainers_id) VALUES(:pokemonId, :trainerId)")
+            .bind("pokemonId", pokemonId)
+            .bind("trainerId", trainerId.toString())
+            .fetch()
+            .rowsUpdated()
+            .map { it.toInt() }
+            .awaitSingle()
+            .right() ?: Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
 
     override suspend fun deletePokemon(
         pokemonId: Int,
