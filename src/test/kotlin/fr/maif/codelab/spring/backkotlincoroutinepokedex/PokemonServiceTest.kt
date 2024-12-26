@@ -6,12 +6,12 @@ import arrow.core.right
 import fr.maif.codelab.spring.backkotlincoroutinepokedex.domain.models.*
 import fr.maif.codelab.spring.backkotlincoroutinepokedex.domain.repositories.PokemonRepository
 import fr.maif.codelab.spring.backkotlincoroutinepokedex.domain.services.PokemonServiceImpl
-import io.mockk.every
+import io.mockk.coEvery
 import io.mockk.mockk
-import reactor.kotlin.core.publisher.toMono
-import reactor.test.StepVerifier
+import kotlinx.coroutines.runBlocking
 import java.util.*
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class PokemonServiceTest {
 
@@ -27,12 +27,9 @@ class PokemonServiceTest {
             )
         val pokedex: Either<PokemonServiceImpl.PokemonServiceErrors, PokedexPage> = PokedexPage(pokemons, 1).right()
 
-        every { pokemonRepository.findPokemonsByPage(10, 0) } returns pokedex.toMono()
+        coEvery { pokemonRepository.findPokemonsByPage(10, 0) } returns pokedex
 
-        StepVerifier.create(pokemonService.getPokemonsByPage(10, 0))
-            .expectNextMatches { it.isRight() && it.getOrNull() == pokemons }
-            .expectComplete()
-            .verify()
+        runBlocking { pokemonService.getPokemonsByPage(10, 0) }
     }
 
     @Test
@@ -44,12 +41,9 @@ class PokemonServiceTest {
             )
         val pokedex: Either<PokemonServiceImpl.PokemonServiceErrors, PokedexPage> = PokedexPage(pokemons, 1).right()
 
-        every { pokemonRepository.searchPokemonsByName(10, 0, "s") } returns pokedex.toMono()
+        coEvery { pokemonRepository.searchPokemonsByName(10, 0, "s") } returns pokedex
 
-        StepVerifier.create(pokemonService.getPokedexByName(10, 0, "s"))
-            .expectNextMatches { it.isRight() && it.getOrNull() == pokemons }
-            .expectComplete()
-            .verify()
+        runBlocking { pokemonService.getPokedexByName(10, 0, "s") }
     }
 
     @Test
@@ -81,14 +75,13 @@ class PokemonServiceTest {
             listOf(stat1, stat2), listOf("lightning-rod", "battle-armor"), evoChain
         ).right()
 
-        every { pokemonRepository.findPokemonById(1) } returns pokemonDetails.toMono()
-        every { pokemonRepository.findSpeciesById(1) } returns pokemon.right().toMono()
-        every { pokemonRepository.findChainEvolutionById(1) } returns evoChain.right().toMono()
+        coEvery { pokemonRepository.findPokemonById(1) } returns pokemonDetails
+        coEvery { pokemonRepository.findSpeciesById(1) } returns pokemon.right()
+        coEvery { pokemonRepository.findChainEvolutionById(1) } returns evoChain.right()
 
-        StepVerifier.create(pokemonService.getPokemonById(1))
-            .expectNext(completePokemon)
-            .expectComplete()
-            .verify()
+        runBlocking {
+            assertEquals(completePokemon, pokemonService.getPokemonById(1))
+        }
     }
 
     @Test
@@ -96,12 +89,11 @@ class PokemonServiceTest {
         val versions: Either<PokemonServiceImpl.PokemonServiceErrors, List<Version>> =
             listOf(Version("Or"), Version("Ruby")).right()
 
-        every { pokemonRepository.findVersions() } returns versions.toMono()
+        coEvery { pokemonRepository.findVersions() } returns versions
 
-        StepVerifier.create(pokemonService.getVersions())
-            .expectNext(versions)
-            .expectComplete()
-            .verify()
+        runBlocking {
+            assertEquals(versions, pokemonService.getVersions())
+        }
     }
 
     @Test
@@ -109,12 +101,11 @@ class PokemonServiceTest {
         val versions: Either<PokemonServiceImpl.PokemonServiceErrors, List<Version>> =
             PokemonServiceImpl.PokemonServiceErrors.TechnicalError.left()
 
-        every { pokemonRepository.findVersions() } returns versions.toMono()
+        coEvery { pokemonRepository.findVersions() } returns versions
 
-        StepVerifier.create(pokemonService.getVersions())
-            .expectNext(versions)
-            .expectComplete()
-            .verify()
+        runBlocking {
+            assertEquals(versions, pokemonService.getVersions())
+        }
     }
 
     @Test
@@ -124,16 +115,16 @@ class PokemonServiceTest {
             ItemDetails("blabla", "pokeball", 1, "attrape pokemon", "pokeball")
         val itemDetails2 =
             ItemDetails("bla", "berry", 2, "nourrit pokemon", "nourriture")
-        val itemList: Either<PokemonServiceImpl.PokemonServiceErrors, List<ItemDetails>> = listOf(itemDetails1, itemDetails2).right()
+        val itemList: Either<PokemonServiceImpl.PokemonServiceErrors, List<ItemDetails>> =
+            listOf(itemDetails1, itemDetails2).right()
 
-        every { pokemonRepository.findItems(10, 0) } returns items.right().toMono()
-        every { pokemonRepository.findItemDetailsById(1) } returns itemDetails1.right().toMono()
-        every { pokemonRepository.findItemDetailsById(2) } returns itemDetails2.right().toMono()
+        coEvery { pokemonRepository.findItems(10, 0) } returns items.right()
+        coEvery { pokemonRepository.findItemDetailsById(1) } returns itemDetails1.right()
+        coEvery { pokemonRepository.findItemDetailsById(2) } returns itemDetails2.right()
 
-        StepVerifier.create(pokemonService.getItemsByPage(10, 0))
-            .expectNext(itemList)
-            .expectComplete()
-            .verify()
+        runBlocking {
+            assertEquals(itemList, pokemonService.getItemsByPage(10, 0))
+        }
     }
 
     @Test
@@ -146,16 +137,16 @@ class PokemonServiceTest {
             )
         val moveDetails1 = MoveDetails("attaque", 33, 2, PokemonTypes.DRAGON, "blabla", pokemons)
         val moveDetails2 = MoveDetails("defense", 22, 2, PokemonTypes.BUG, "blablabla", pokemons)
-        val listMovesDetails: Either<PokemonServiceImpl.PokemonServiceErrors, List<MoveDetails>> = listOf(moveDetails1, moveDetails2).right()
+        val listMovesDetails: Either<PokemonServiceImpl.PokemonServiceErrors, List<MoveDetails>> =
+            listOf(moveDetails1, moveDetails2).right()
 
-        every { pokemonRepository.findMoves(10, 0) } returns listMoves.right().toMono()
-        every { pokemonRepository.findMoveDetailsById(1) } returns moveDetails1.right().toMono()
-        every { pokemonRepository.findMoveDetailsById(2) } returns moveDetails2.right().toMono()
+        coEvery { pokemonRepository.findMoves(10, 0) } returns listMoves.right()
+        coEvery { pokemonRepository.findMoveDetailsById(1) } returns moveDetails1.right()
+        coEvery { pokemonRepository.findMoveDetailsById(2) } returns moveDetails2.right()
 
-        StepVerifier.create(pokemonService.getMovesByPage(10, 0))
-            .expectNext(listMovesDetails)
-            .expectComplete()
-            .verify()
+        runBlocking {
+            assertEquals(listMovesDetails, pokemonService.getMovesByPage(10, 0))
+        }
     }
 
     @Test
@@ -168,13 +159,12 @@ class PokemonServiceTest {
         val uuid = UUID.randomUUID()
         val pokemonsIds: Either<PokemonServiceImpl.PokemonServiceErrors, List<Int>> = listOf(1, 2).right()
 
-        every { pokemonRepository.getTrainerPokedex(uuid) } returns pokemonsIds.toMono()
-        every { pokemonsIds.getOrNull()?.let { pokemonRepository.findPokemonByIds(it) } } returns pokemons.toMono()
+        coEvery { pokemonRepository.getTrainerPokedex(uuid) } returns pokemonsIds
+        coEvery { pokemonsIds.getOrNull()?.let { pokemonRepository.findPokemonByIds(it) } } returns pokemons
 
-        StepVerifier.create(pokemonService.getTrainerPokedex(uuid))
-            .expectNext(pokemons)
-            .expectComplete()
-            .verify()
+        runBlocking {
+            assertEquals(pokemons, pokemonService.getTrainerPokedex(uuid))
+        }
     }
 
     @Test
@@ -187,13 +177,12 @@ class PokemonServiceTest {
         val pokemonsId: Either<PokemonServiceImpl.PokemonServiceErrors, Int> = 1.right()
         val pokemonsIds: List<Int> = listOf(1)
 
-        every { pokemonRepository.addPokemon(1, uuid) } returns pokemonsId.toMono()
-        every { pokemonRepository.findPokemonByIds(pokemonsIds) } returns pokedex.toMono()
+        coEvery { pokemonRepository.addPokemon(1, uuid) } returns pokemonsId
+        coEvery { pokemonRepository.findPokemonByIds(pokemonsIds) } returns pokedex
 
-        StepVerifier.create(pokemonService.addPokemon(1, uuid))
-            .expectNext(pokemon)
-            .expectComplete()
-            .verify()
+        runBlocking {
+            assertEquals(pokemon, pokemonService.addPokemon(1, uuid))
+        }
     }
 
     @Test
@@ -206,13 +195,12 @@ class PokemonServiceTest {
         val pokemonsId: Either<PokemonServiceImpl.PokemonServiceErrors, Int> = 1.right()
         val pokemonsIds: List<Int> = listOf(1)
 
-        every { pokemonRepository.deletePokemon(1, uuid) } returns pokemonsId.toMono()
-        every { pokemonRepository.findPokemonByIds(pokemonsIds) } returns pokedex.toMono()
+        coEvery { pokemonRepository.deletePokemon(1, uuid) } returns pokemonsId
+        coEvery { pokemonRepository.findPokemonByIds(pokemonsIds) } returns pokedex
 
-        StepVerifier.create(pokemonService.deletePokemon(1, uuid))
-            .expectNext(pokemon)
-            .expectComplete()
-            .verify()
+        runBlocking {
+            assertEquals(pokemon, pokemonService.deletePokemon(1, uuid))
+        }
     }
 
     @Test
@@ -220,10 +208,10 @@ class PokemonServiceTest {
         val uuid = UUID.randomUUID()
         val expected: Either<PokemonServiceImpl.PokemonServiceErrors, Unit> = Unit.right()
 
-        every { pokemonRepository.deleteAllPokemons(uuid) } returns expected.toMono()
-        StepVerifier.create(pokemonService.deleteAllPokemons(uuid))
-            .expectNext(expected)
-            .expectComplete()
-            .verify()
+        coEvery { pokemonRepository.deleteAllPokemons(uuid) } returns expected
+
+        runBlocking {
+            assertEquals(expected, pokemonService.deleteAllPokemons(uuid))
+        }
     }
 }
