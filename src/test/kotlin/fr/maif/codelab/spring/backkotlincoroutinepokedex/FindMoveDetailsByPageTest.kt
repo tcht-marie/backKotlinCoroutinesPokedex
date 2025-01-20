@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
+import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
@@ -49,9 +50,10 @@ class FindMoveDetailsByPageTest {
     @Test
     fun findMoveDetailsByPageTest() {
         wireMock.stubFor(
-            WireMock.get("/move")
+            WireMock.get(WireMock.urlPathEqualTo("/move"))
                 .willReturn(
                     WireMock.aResponse()
+                        .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                         .withBody(
                             StreamUtils.copyToString(
                                 ClassPathResource("data/findMoveDetailsByPage/moves.json").inputStream,
@@ -62,9 +64,10 @@ class FindMoveDetailsByPageTest {
         )
 
         wireMock.stubFor(
-            WireMock.get("/move/1")
+            WireMock.get(WireMock.urlPathEqualTo("/move/1"))
                 .willReturn(
                     WireMock.aResponse()
+                        .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                         .withBody(
                             StreamUtils.copyToString(
                                 ClassPathResource("data/findMoveDetailsByPage/move_details_1.json").inputStream,
@@ -85,3 +88,12 @@ class FindMoveDetailsByPageTest {
             )
     }
 }
+// FIXME : error
+//[0].flavorText
+//Expected: Pounds with fore­ legs or tail.
+//     got: val fr.maif.codelab.spring.backkotlincoroutinepokedex.infrastructure.models.FlavorTextEntryInfra.flavorText: kotlin.String?
+// ; [0]
+//Expected: pokemonTypes
+//     but none found
+// ; [0]
+//Unexpected: types

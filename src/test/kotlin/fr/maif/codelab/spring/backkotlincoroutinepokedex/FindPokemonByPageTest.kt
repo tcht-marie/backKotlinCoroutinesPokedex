@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
+import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
@@ -47,12 +48,13 @@ class FindPokemonByPageTest {
     }
 
     @Test
-    fun findVersionsTest() {
+    fun findPokemonByPageTest() {
 
         wireMock.stubFor(
-            WireMock.get("/pokedex/1")
+            WireMock.get(WireMock.urlPathEqualTo("/pokedex/1"))
                 .willReturn(
                     WireMock.aResponse()
+                        .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                         .withBody(
                             StreamUtils.copyToString(
                                 ClassPathResource("data/findPokemonByPage/pokedex_1.json").inputStream,

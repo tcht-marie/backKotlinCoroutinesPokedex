@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
+import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
@@ -47,11 +48,12 @@ class FindPokemonByIdTest {
     }
 
     @Test
-    fun findMoveDetailsByPageTest() {
+    fun findPokemonByIdTest() {
         wireMock.stubFor(
-            WireMock.get("/pokemon/104")
+            WireMock.get(WireMock.urlPathEqualTo("/pokemon/104"))
                 .willReturn(
                     WireMock.aResponse()
+                        .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                         .withBody(
                             StreamUtils.copyToString(
                                 ClassPathResource("data/findPokemonById/pokemon_details_104.json").inputStream,
@@ -62,9 +64,10 @@ class FindPokemonByIdTest {
         )
 
         wireMock.stubFor(
-            WireMock.get("/pokemon-species/104")
+            WireMock.get(WireMock.urlPathEqualTo("/pokemon-species/104"))
                 .willReturn(
                     WireMock.aResponse()
+                        .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                         .withBody(
                             StreamUtils.copyToString(
                                 ClassPathResource("data/findPokemonById/species_104.json").inputStream,
@@ -75,9 +78,10 @@ class FindPokemonByIdTest {
         )
 
         wireMock.stubFor(
-            WireMock.get("/evolution-chain/46")
+            WireMock.get(WireMock.urlPathEqualTo("/evolution-chain/46"))
                 .willReturn(
                     WireMock.aResponse()
+                        .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                         .withBody(
                             StreamUtils.copyToString(
                                 ClassPathResource("data/findPokemonById/evolution_chain_46.json").inputStream,
@@ -98,3 +102,5 @@ class FindPokemonByIdTest {
             )
     }
 }
+// FIXME : error
+// org.springframework.core.io.buffer.DataBufferLimitException: Exceeded limit on max bytes to buffer : 262144

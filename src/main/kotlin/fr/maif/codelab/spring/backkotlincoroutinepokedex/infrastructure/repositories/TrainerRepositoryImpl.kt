@@ -12,6 +12,7 @@ class TrainerRepositoryImpl(
     private val databaseClient: DatabaseClient,
 ) : TrainerRepository {
 
+    // TODO : passer les méthodes en coroutines ?? problème dans le TrainerController (.authenticate attends un mono)
     override fun register(username: String, password: String): Mono<Trainer> =
         databaseClient.sql("INSERT INTO trainers(username, password) VALUES(:username, :password)")
             .bind("username", username)

@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
+import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
@@ -49,9 +50,10 @@ class FindItemDetailsByPageTest {
     @Test
     fun findItemDetailsByPageTest() {
         wireMock.stubFor(
-            WireMock.get("/item")
+            WireMock.get(WireMock.urlPathEqualTo("/item"))
                 .willReturn(
                     WireMock.aResponse()
+                        .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                         .withBody(
                             StreamUtils.copyToString(
                                 ClassPathResource("data/findItemDetailsByPage/items.json").inputStream,
@@ -62,9 +64,10 @@ class FindItemDetailsByPageTest {
         )
 
         wireMock.stubFor(
-            WireMock.get("/item/1")
+            WireMock.get(WireMock.urlPathEqualTo("/item/1"))
                 .willReturn(
                     WireMock.aResponse()
+                        .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                         .withBody(
                             StreamUtils.copyToString(
                                 ClassPathResource("data/findItemDetailsByPage/item_details_1.json").inputStream,
@@ -85,3 +88,10 @@ class FindItemDetailsByPageTest {
             )
     }
 }
+// FIXME : error
+// [0].effect
+//Expected: Catches a wild Pokémon every time.
+//     got: val fr.maif.codelab.spring.backkotlincoroutinepokedex.infrastructure.models.EffectEntryInfra.shortEffect: kotlin.String
+// ; [0].spriteUrl
+//Expected: https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/master-ball.png
+//     got: h
