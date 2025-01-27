@@ -4,6 +4,9 @@ import fr.maif.codelab.spring.backkotlincoroutinepokedex.domain.services.Trainer
 import fr.maif.codelab.spring.backkotlincoroutinepokedex.web.dto.LoginRequestDto
 import fr.maif.codelab.spring.backkotlincoroutinepokedex.web.dto.TrainerDto
 import fr.maif.codelab.spring.backkotlincoroutinepokedex.web.mapper.TrainerMapperDto
+import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.reactor.awaitSingleOrNull
+import org.apache.commons.lang3.StringUtils.defaultIfEmpty
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.authentication.BadCredentialsException
@@ -30,30 +33,31 @@ class TrainerController(
 ) {
 
     @PostMapping("/register", produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun register(@RequestBody loginRequestDto: LoginRequestDto): Mono<ResponseEntity<TrainerDto>> {
-        return trainerService.register(loginRequestDto.username, loginRequestDto.password)
-            // .map { trainer -> trainerMapperDto.mapTrainerToTrainerDto(trainer) }
-            //.map(trainerMapperDto::mapTrainerToTrainerDto)
-            .map { trainerMapperDto.mapTrainerToTrainerDto(it) }
-            // ResponseEntity = wrapper complet autour de la réponse http
-            .map { ResponseEntity.ok().body(it) }
-            .defaultIfEmpty(ResponseEntity.internalServerError().build())
+    suspend fun register(@RequestBody loginRequestDto: LoginRequestDto): ResponseEntity<TrainerDto> {
+        return trainerService
+            .register(loginRequestDto.username, loginRequestDto.password)
+            .awaitSingleOrNull()
+            ?.let { trainerMapperDto.mapTrainerToTrainerDto(it) }
+            ?.let { ResponseEntity.ok().body(it) }
+            ?: ResponseEntity.internalServerError().build()
     }
 
     @PostMapping("/login", produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun login(@RequestBody loginRequestDto: LoginRequestDto, exchange: ServerWebExchange): Mono<Void> {
+    suspend fun login(
+        @RequestBody loginRequestDto: LoginRequestDto,
+        exchange: ServerWebExchange
+    ): ResponseEntity<Unit> {
         val token: UsernamePasswordAuthenticationToken = UsernamePasswordAuthenticationToken.unauthenticated(
             loginRequestDto.username, loginRequestDto.password
         )
-            return authenticationManager.authenticate(token)
-                .flatMap {
-                    if (it.isAuthenticated) {
-                        val context: SecurityContext = securityContextHolderStrategy.createEmptyContext()
-                        context.authentication = it
-                        serverSecurityContextRepository.save(exchange, context)
-                    } else {
-                        Mono.error(BadCredentialsException("Invalid credentials"))
-                    }
-                }
+        val authentication = authenticationManager.authenticate(token).awaitSingle()
+        return if (authentication.isAuthenticated) {
+            val context: SecurityContext = securityContextHolderStrategy.createEmptyContext()
+            context.authentication = authentication
+            serverSecurityContextRepository.save(exchange, context).awaitSingle()
+            ResponseEntity.ok().build()
+        } else {
+            ResponseEntity.internalServerError().build()
+        }
     }
 }

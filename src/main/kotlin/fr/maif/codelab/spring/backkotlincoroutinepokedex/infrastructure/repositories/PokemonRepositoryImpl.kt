@@ -30,16 +30,6 @@ class PokemonRepositoryImpl(
     private val pokemonMapper: PokemonMapper,
 ) : PokemonRepository {
 
-    private val PATH_POKEDEX: String = "/pokedex/1"
-    private val PATH_POKEMONDETAILS: String = "/pokemon/{idPokemon}"
-    private val PATH_VERSIONS: String = "/version?limit=60"
-    private val PATH_ITEMS: String = "/item?limit={limit}&offset={offset}"
-    private val PATH_ITEMDETAILS: String = "/item/{idItem}"
-    private val PATH_EVOLUTION: String = "/evolution-chain/{idEvo}"
-    private val PATH_SPECIES: String = "/pokemon-species/{idPokemon}"
-    private val PATH_MOVES: String = "/move?limit={limit}&offset={offset}"
-    private val PATH_MOVEDETAILS: String = "/move/{idMove}"
-
     private suspend fun getPokedex(): Either<PokemonServiceImpl.PokemonServiceErrors, PokedexInfra> =
         webClient.get().uri(PATH_POKEDEX).awaitExchange { clientResponse ->
             if (clientResponse.statusCode() == HttpStatus.OK) {
@@ -184,43 +174,49 @@ class PokemonRepositoryImpl(
         }
 
     override suspend fun getTrainerPokedex(trainerId: UUID): Either<PokemonServiceImpl.PokemonServiceErrors, List<Int>> =
-        databaseClient.sql("SELECT pokemon_id FROM pokedex WHERE trainers_id = :trainerId")
-            .bind("trainerId", trainerId.toString())
-            .map { row -> row.get(0, Int::class.javaObjectType) }
-            .all()
-            .collectList()
-            .awaitSingle()
-            .filterNotNull()
-            .right() ?: Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
+        try {
+            databaseClient.sql("SELECT pokemon_id FROM pokedex WHERE trainers_id = :trainerId")
+                .bind("trainerId", trainerId.toString())
+                .map { row -> row.get(0, Int::class.javaObjectType) }
+                .all()
+                .collectList()
+                .awaitSingle()
+                .filterNotNull()
+                .right()
+        } catch (e: Exception){
+            Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
+        }
 
     override suspend fun addPokemon(
         pokemonId: Int,
         trainerId: UUID
     ): Either<PokemonServiceImpl.PokemonServiceErrors, Int> =
-        databaseClient.sql("INSERT INTO pokedex(pokemon_id, trainers_id) VALUES(:pokemonId, :trainerId)")
-            .bind("pokemonId", pokemonId)
-            .bind("trainerId", trainerId.toString())
-            .fetch()
-            .rowsUpdated()
-            .map { it.toInt() }
-            .awaitSingle()
-            .right() ?: Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
+        try {
+            databaseClient.sql("INSERT INTO pokedex(pokemon_id, trainers_id) VALUES(:pokemonId, :trainerId)")
+                .bind("pokemonId", pokemonId)
+                .bind("trainerId", trainerId.toString())
+                .fetch()
+                .rowsUpdated()
+                .map { it.toInt() }
+                .awaitSingle()
+                .right()
+        } catch (e: Exception) {
+            Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
+        }
 
     override suspend fun deletePokemon(
         pokemonId: Int,
         trainerId: UUID
     ): Either<PokemonServiceImpl.PokemonServiceErrors, Int> =
         try {
-            val pokemon =
-                databaseClient.sql("DELETE FROM pokedex WHERE pokemon_id = :pokemonId AND trainers_id = :trainerId")
-                    .bind("pokemonId", pokemonId)
-                    .bind("trainerId", trainerId.toString())
-                    .fetch()
-                    .rowsUpdated()
-                    .map { it.toInt() }
-                    .awaitSingle()
-                    .right()
-            pokemon
+            databaseClient.sql("DELETE FROM pokedex WHERE pokemon_id = :pokemonId AND trainers_id = :trainerId")
+                .bind("pokemonId", pokemonId)
+                .bind("trainerId", trainerId.toString())
+                .fetch()
+                .rowsUpdated()
+                .map { it.toInt() }
+                .awaitSingle()
+                .right()
         } catch (e: Exception) {
             Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
         }
@@ -237,4 +233,16 @@ class PokemonRepositoryImpl(
         } catch (e: Exception) {
             Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
         }
+
+    companion object {
+        private const val PATH_POKEDEX: String = "/pokedex/1"
+        private const val PATH_POKEMONDETAILS: String = "/pokemon/{idPokemon}"
+        private const val PATH_VERSIONS: String = "/version?limit=60"
+        private const val PATH_ITEMS: String = "/item?limit={limit}&offset={offset}"
+        private const val PATH_ITEMDETAILS: String = "/item/{idItem}"
+        private const val PATH_EVOLUTION: String = "/evolution-chain/{idEvo}"
+        private const val PATH_SPECIES: String = "/pokemon-species/{idPokemon}"
+        private const val PATH_MOVES: String = "/move?limit={limit}&offset={offset}"
+        private const val PATH_MOVEDETAILS: String = "/move/{idMove}"
+    }
 }
