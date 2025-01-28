@@ -173,6 +173,10 @@ class PokemonRepositoryImpl(
             }
         }
 
+    /* utilisation de try catch =
+        si une erreur vient de la base de données, elle ne sera pas gérée sans le try catch et remontera jusqu'au
+        controller. Le catch vient donc récupérer n'importe quelles erreurs et la passe dans le either left
+    */
     override suspend fun getTrainerPokedex(trainerId: UUID): Either<PokemonServiceImpl.PokemonServiceErrors, List<Int>> =
         try {
             databaseClient.sql("SELECT pokemon_id FROM pokedex WHERE trainers_id = :trainerId")
