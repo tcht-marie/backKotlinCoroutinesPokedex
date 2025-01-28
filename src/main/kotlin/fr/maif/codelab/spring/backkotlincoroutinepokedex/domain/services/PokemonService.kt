@@ -11,7 +11,7 @@ interface PokemonService {
 
     suspend fun getPokedexByName(limit: Int, offset: Int, query: String): Either<PokemonServiceErrors, List<Pokemon>>
 
-    suspend fun getPokemonById(id: Int): Either<PokemonServiceErrors, CompletePokemon?>
+    suspend fun getPokemonById(id: Int): Either<PokemonServiceErrors, CompletePokemon>
 
     suspend fun getVersions(): Either<PokemonServiceErrors, List<Version>>
 
