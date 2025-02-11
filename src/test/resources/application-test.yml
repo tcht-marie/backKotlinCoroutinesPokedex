@@ -1,4 +1,3 @@
 spring:
-  datasource:
-    url: r2dbc:tc:postgresql:16.4:///pokedex?TC_INITSCRIPT=file:src/main/resources/db/changelog/db.changelog-master.sql
-    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+  codec:
+    max-in-memory-size: 10MB

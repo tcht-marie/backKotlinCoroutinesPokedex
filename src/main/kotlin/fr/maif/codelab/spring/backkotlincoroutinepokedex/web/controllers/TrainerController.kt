@@ -54,7 +54,7 @@ class TrainerController(
         return if (authentication.isAuthenticated) {
             val context: SecurityContext = securityContextHolderStrategy.createEmptyContext()
             context.authentication = authentication
-            serverSecurityContextRepository.save(exchange, context).awaitSingle()
+            serverSecurityContextRepository.save(exchange, context).awaitSingleOrNull()
             ResponseEntity.ok().build()
         } else {
             ResponseEntity.internalServerError().build()

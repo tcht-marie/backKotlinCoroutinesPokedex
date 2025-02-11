@@ -13,12 +13,9 @@ enum class StatName(val statName: String) {
     EVASION("evasion"),
     UNKNOWN("unknown");
 
-    companion object StaticFun {
-        fun mapStringToStatName(value: String): StatName {
-            return Arrays.stream(entries.toTypedArray())
-                .filter { statName: StatName ->
-                    statName.name == value
-                }.findFirst().orElse(UNKNOWN)
-        }
+    companion object {
+        fun mapStringToStatName(value: String): StatName =
+            entries.firstOrNull { it.statName.equals(value, ignoreCase = true) }
+                ?: UNKNOWN
     }
 }

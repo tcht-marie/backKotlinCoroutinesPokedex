@@ -50,7 +50,7 @@ class PokemonController(
         pokemonService.getPokemonById(id).fold(
             { ResponseEntity.internalServerError().build() },
             {
-                ResponseEntity.ok().body(it?.let { completePokemon ->
+                ResponseEntity.ok().body(it.let { completePokemon ->
                     pokemonMapperDto.mapCompletePokemonToCompletePokemonDto(
                         completePokemon
                     )

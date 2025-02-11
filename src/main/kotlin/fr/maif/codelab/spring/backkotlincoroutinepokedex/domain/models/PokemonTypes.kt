@@ -25,17 +25,9 @@ enum class PokemonTypes {
     SHADOW,
     UNKNOWN;
 
-    companion object StaticFun {
-        fun mapStringToPokemonType(type: String?): PokemonTypes {
-            return Arrays.stream(entries.toTypedArray())
-                .filter { pokemonTypes: PokemonTypes ->
-                    pokemonTypes.name.equals(
-                        type,
-                        ignoreCase = true
-                    )
-                }
-                .findFirst()
-                .orElse(UNKNOWN)
-        }
+    companion object {
+        fun mapStringToPokemonType(type: String?): PokemonTypes =
+            entries.firstOrNull { it.name.equals(type, ignoreCase = true) }
+                ?: UNKNOWN
     }
 }

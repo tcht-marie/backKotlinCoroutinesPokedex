@@ -3,8 +3,8 @@ package fr.maif.codelab.spring.backkotlincoroutinepokedex.web.mapper
 import fr.maif.codelab.spring.backkotlincoroutinepokedex.domain.models.*
 import fr.maif.codelab.spring.backkotlincoroutinepokedex.web.dto.*
 import org.springframework.stereotype.Component
-import java.text.DecimalFormat
 import java.text.NumberFormat
+import java.util.Locale
 
 @Component
 class PokemonMapperDto {
@@ -18,8 +18,8 @@ class PokemonMapperDto {
         flavorText.replace("\n", " ").replace("\u000c", " ")
 
     private fun mapIntToKg(data: Int): String {
-        val formatter: NumberFormat = DecimalFormat()
-        return formatter.format(data / 10)
+        val formatter: NumberFormat = NumberFormat.getNumberInstance(Locale.FRANCE)
+        return formatter.format(data.toDouble() / 10)
     }
 
     fun mapPokemonToPokemonDto(pokemon: Pokemon): PokemonDto {
@@ -51,7 +51,7 @@ class PokemonMapperDto {
             mapFlavorText(completePokemon.flavorText),
             pokemonTypesDto,
             pokemonStatDto,
-            completePokemon.abilities.map { it.uppercase() },
+            completePokemon.abilities.map { ability -> ability.replaceFirstChar { it.uppercase() } },
             evoChain
         )
     }

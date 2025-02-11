@@ -10,5 +10,9 @@ class BeanConfig {
     @Bean
     fun webClient(
         @Value("\${pokeapi.base-url}") baseUrl: String,
-    ) = WebClient.create(baseUrl)
+    ) = WebClient
+        .builder()
+        .baseUrl(baseUrl)
+        .codecs{ it.defaultCodecs().maxInMemorySize(16 * 1024 * 1024) }
+        .build()
 }

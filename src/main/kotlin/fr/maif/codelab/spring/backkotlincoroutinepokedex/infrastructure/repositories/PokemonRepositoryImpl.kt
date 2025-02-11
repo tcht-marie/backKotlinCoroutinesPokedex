@@ -119,8 +119,7 @@ class PokemonRepositoryImpl(
         webClient.get().uri(PATH_ITEMDETAILS, idItem).awaitExchange { clientResponse ->
             if (clientResponse.statusCode() == HttpStatus.OK) {
                 val body = clientResponse.awaitBody<ItemDetailsInfra>()
-                val itemDetails = pokemonMapper.mapItemDetailsInfraToItemDetails(body)
-                Either.Right(itemDetails)
+                pokemonMapper.mapItemDetailsInfraToItemDetails(body)
             } else {
                 Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
             }
@@ -144,8 +143,7 @@ class PokemonRepositoryImpl(
         webClient.get().uri(PATH_MOVEDETAILS, idMove).awaitExchange { clientResponse ->
             if (clientResponse.statusCode() == HttpStatus.OK) {
                 val body = clientResponse.awaitBody<MoveDetailsInfra>()
-                val moveDetails = pokemonMapper.mapMoveDetailsInfraToMoveDetails(body)
-                Either.Right(moveDetails)
+                pokemonMapper.mapMoveDetailsInfraToMoveDetails(body)
             } else {
                 Either.Left(PokemonServiceImpl.PokemonServiceErrors.TechnicalError)
             }

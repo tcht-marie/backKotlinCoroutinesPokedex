@@ -1,6 +1,10 @@
 package fr.maif.codelab.spring.backkotlincoroutinepokedex.infrastructure.repositories.mapper
 
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.right
 import fr.maif.codelab.spring.backkotlincoroutinepokedex.domain.models.*
+import fr.maif.codelab.spring.backkotlincoroutinepokedex.domain.services.PokemonServiceImpl.PokemonServiceErrors
 import fr.maif.codelab.spring.backkotlincoroutinepokedex.infrastructure.models.*
 import org.springframework.stereotype.Component
 import java.util.*
@@ -60,16 +64,19 @@ class PokemonMapper {
             getIdFromUrl(item.url)?.let { Item(item.name, it) }
         }
 
-    fun mapItemDetailsInfraToItemDetails(itemDetailsInfra: ItemDetailsInfra): ItemDetails {
-        val effect: String = itemDetailsInfra.effectEntries.map { EffectEntryInfra::shortEffect }.first().toString()
-        val defaultSprite: String = itemDetailsInfra.sprites?.defaultSprite?.let { it }?.first().toString()
-        return ItemDetails(
-            defaultSprite,
-            itemDetailsInfra.name,
-            itemDetailsInfra.id,
-            effect,
-            itemDetailsInfra.category.name
-        )
+    fun mapItemDetailsInfraToItemDetails(itemDetailsInfra: ItemDetailsInfra): Either<PokemonServiceErrors, ItemDetails> {
+        val effect = itemDetailsInfra.effectEntries.map { it.shortEffect }.firstOrNull()
+        return effect?.let {
+            itemDetailsInfra.sprites?.defaultSprite?.let {
+                ItemDetails(
+                    it,
+                    itemDetailsInfra.name,
+                    itemDetailsInfra.id,
+                    effect,
+                    itemDetailsInfra.category.name
+                ).right()
+            }
+        } ?: PokemonServiceErrors.TechnicalError.left()
     }
 
     fun mapMoveInfraToMove(pageMoveInfra: PageGenericInfra<MoveInfra>): List<Move> =
@@ -77,18 +84,20 @@ class PokemonMapper {
             getIdFromUrl(move.url)?.let { Move(move.name, it) }
         }
 
-    fun mapMoveDetailsInfraToMoveDetails(moveDetailsInfra: MoveDetailsInfra): MoveDetails {
+    fun mapMoveDetailsInfraToMoveDetails(moveDetailsInfra: MoveDetailsInfra): Either<PokemonServiceErrors, MoveDetails> {
         val pokemonTypes: PokemonTypes = PokemonTypes.mapStringToPokemonType(moveDetailsInfra.type.name)
-        val flavorText: String = moveDetailsInfra.flavorText.map { FlavorTextEntryInfra::flavorText }.first().toString()
+        val flavorText = moveDetailsInfra.flavorText.firstOrNull { it.flavorText != null }?.flavorText
         val pokemons: List<Pokemon> = moveDetailsInfra.pokemon.map { mapSpeciesInfraToPokemon(it) }
-        return MoveDetails(
-            moveDetailsInfra.name,
-            moveDetailsInfra.power,
-            moveDetailsInfra.pp,
-            pokemonTypes,
-            flavorText,
-            pokemons
-        )
+        return flavorText?.let {
+            MoveDetails(
+                moveDetailsInfra.name,
+                moveDetailsInfra.power,
+                moveDetailsInfra.pp,
+                pokemonTypes,
+                flavorText,
+                pokemons
+            ).right()
+        } ?: PokemonServiceErrors.TechnicalError.left()
     }
 
     fun mapSpeciesInfraToPokemon(pokemonSpeciesInfra: PokemonSpeciesInfra): Pokemon {

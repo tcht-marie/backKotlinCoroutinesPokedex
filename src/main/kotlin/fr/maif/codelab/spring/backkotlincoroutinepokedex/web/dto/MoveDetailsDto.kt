@@ -4,7 +4,7 @@ data class MoveDetailsDto(
     val name: String,
     val power: Int,
     val pp: Int,
-    val types: PokemonTypesDto,
+    val pokemonTypes: PokemonTypesDto,
     val flavorText: String,
     val pokemons: List<PokemonDto>
 )
